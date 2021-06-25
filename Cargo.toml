@@ -1,0 +1,14 @@
+[package]
+name = "random-word-reader"
+version = "0.1.0"
+authors = ["Daryl Pinto <daryl.j.pinto@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+eframe = "0.13.1"
+tts = "0.17.3"
+rand = "0.8.4"
+strum = "0.21"
+strum_macros = "0.21"
