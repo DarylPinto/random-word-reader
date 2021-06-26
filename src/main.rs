@@ -1,34 +1,16 @@
-// #![windows_subsystem = "windows"]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use eframe::{egui, epi};
-use rand::seq::SliceRandom;
-use std::{
-    error::Error,
-    fs::File,
-    io::{prelude::*, BufReader},
-};
-use strum::IntoEnumIterator;
-use strum_macros::{Display, EnumIter};
-use tts::Tts;
+use std::path::PathBuf;
+mod utils;
 
 const APP_NAME: &str = "Random Word Reader";
 const DEFAULT_INTERVAL: u64 = 30;
 const PADDING: f32 = 10.0;
 
-#[derive(Clone, Copy, PartialEq, EnumIter, Display)]
-enum WordType {
-    All,
-    Noun,
-    Verb,
-    Adjective,
-    Question,
-    Idiom,
-    Vocabulary,
-    Custom
-}
-
 pub struct App {
     interval: u64,
-    word_type: WordType,
+    categories: Vec<(PathBuf, String)>,
+    selected_category: String,
     is_speaking: bool,
 }
 
@@ -36,52 +18,10 @@ impl Default for App {
     fn default() -> Self {
         Self {
             interval: DEFAULT_INTERVAL,
-            word_type: WordType::All,
+            categories: utils::get_word_filenames(),
+            selected_category: String::from("All"),
             is_speaking: false,
         }
-    }
-}
-
-fn speak(interval: u64, word_type: WordType) -> Result<(), Box<dyn Error>> {
-    // Get filename(s) for selected word type
-    let word_filenames: Vec<_> = match word_type {
-        WordType::All => std::fs::read_dir("./words")?
-            .map(|entry| entry.unwrap().path())
-            .collect(),
-        _ => {
-            let filename = format!("./words/{}.txt", word_type.to_string().to_lowercase());
-            let path = std::path::PathBuf::from(filename);
-            vec![path]
-        }
-    };
-
-    let mut all_words: Vec<String> = vec![];
-
-    // Load words into memory
-    for filename in word_filenames {
-        let file = File::open(filename)?;
-        let buffer = BufReader::new(file);
-
-        let mut words: Vec<String> = buffer
-            .lines()
-            .map(|line| line.expect("unable to parse"))
-            .collect();
-
-        all_words.append(&mut words);
-    }
-
-    // Speak
-    let mut speaker = Tts::default()?;
-
-    loop {
-        match all_words.choose(&mut rand::thread_rng()) {
-            Some(w) => {
-                speaker.speak(w, true).unwrap();
-            }
-            None => (),
-        }
-        let delay = if interval < 1 { 1 } else { interval };
-        std::thread::sleep(std::time::Duration::from_secs(delay));
     }
 }
 
@@ -95,18 +35,24 @@ impl epi::App for App {
             ui.heading(APP_NAME);
             ui.add_space(PADDING);
             if !self.is_speaking {
-                for category in WordType::iter() {
-                    ui.radio_value(&mut self.word_type, category, category.to_string());
+                ui.radio_value(&mut self.selected_category, "All".to_string(), "All");
+                for category in &self.categories {
+                    ui.radio_value(
+                        &mut self.selected_category,
+                        category.1.to_string(),
+                        category.1.to_string(),
+                    );
                 }
                 ui.add_space(PADDING);
                 ui.add(egui::Slider::new(&mut self.interval, 1..=120).text("delay between words"));
                 ui.add_space(PADDING * 2.);
                 if ui.button("   Start Reading   ").clicked() {
                     self.is_speaking = true;
-                    let interval = self.interval.clone();
-                    let word_type = self.word_type.clone();
+                    let interval = self.interval;
+                    let selected = self.selected_category.clone();
+                    let categories = self.categories.clone();
                     std::thread::spawn(move || {
-                        speak(interval, word_type);
+                        utils::speak(interval, categories, selected).unwrap_or(());
                     });
                 }
             } else {
@@ -115,7 +61,7 @@ impl epi::App for App {
                 ui.add_space(PADDING);
                 ui.label(format!(
                     "Listening to: {} words, {} second(s) apart",
-                    self.word_type.to_string(),
+                    self.selected_category.to_string(),
                     self.interval
                 ));
             }
@@ -130,7 +76,6 @@ fn main() {
         Box::new(app),
         eframe::NativeOptions {
             initial_window_size: Some(egui::Vec2 { x: 320., y: 340. }),
-            resizable: false,
             ..options
         },
     );
