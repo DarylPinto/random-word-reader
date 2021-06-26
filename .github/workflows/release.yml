@@ -1,0 +1,33 @@
+name: Tagged Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-windows:
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build for Release
+        run: cargo build --release
+
+      - name: Package
+        run: |
+          mv "target/release/random-word-reader.exe" "random-word-reader.exe"
+          tar cf "random-word-reader.zip" "random-word-reader.exe" "words"
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "random-word-reader.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
