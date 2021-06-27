@@ -50,5 +50,9 @@ pub fn get_words(
 }
 
 pub fn path_to_string(path: &Path) -> String {
-    path.file_stem().unwrap().to_owned().into_string().unwrap()
+    path.file_stem()
+        .unwrap()
+        .to_owned()
+        .into_string()
+        .unwrap_or_else(|_| String::from("Unknown"))
 }

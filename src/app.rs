@@ -1,23 +1,18 @@
 use crate::speaker;
-use crate::utils;
+use crate::utils::{self, ChannelMessage};
 use crate::APP_NAME;
 use crate::DEFAULT_INTERVAL;
 use eframe::{egui, epi};
-use egui::Ui;
-use std::{
-    path::PathBuf,
-    sync::mpsc::{self, Sender},
-};
-use utils::ChannelMessage;
+use std::{path::PathBuf, sync::mpsc};
 
-const PADDING: f32 = 10.0;
+const PADDING: f32 = 10.;
 
 pub struct App {
     interval: u64,
     categories: Vec<PathBuf>,
     selected_category: Option<PathBuf>,
     is_speaking: bool,
-    channel_transmitter: Option<Sender<ChannelMessage>>,
+    channel_transmitter: Option<mpsc::Sender<ChannelMessage>>,
 }
 
 impl Default for App {
@@ -33,13 +28,13 @@ impl Default for App {
 }
 
 // App header
-fn render_header(ui: &mut Ui) {
+fn render_header(ui: &mut egui::Ui) {
     ui.heading(APP_NAME);
     ui.add_space(PADDING);
 }
 
 // Start screen
-fn render_main_screen(app: &mut App, ui: &mut Ui) {
+fn render_main_screen(app: &mut App, ui: &mut egui::Ui) {
     ui.radio_value(&mut app.selected_category, None, "All");
     for category in &app.categories {
         ui.radio_value(
@@ -65,7 +60,7 @@ fn render_main_screen(app: &mut App, ui: &mut Ui) {
 }
 
 // Speaker Screen
-fn render_speaking_screen(app: &mut App, ui: &mut Ui) {
+fn render_speaking_screen(app: &mut App, ui: &mut egui::Ui) {
     let selected_label = match &app.selected_category {
         Some(cat) => utils::path_to_string(&cat),
         None => String::from("All"),
@@ -81,8 +76,9 @@ fn render_speaking_screen(app: &mut App, ui: &mut Ui) {
     ui.add_space(PADDING * 2.);
     if ui.button("Back").clicked() {
         if let Some(transmitter) = &app.channel_transmitter {
-            transmitter.send(ChannelMessage::StopTalking).unwrap();
-            app.is_speaking = false;
+            if transmitter.send(ChannelMessage::StopTalking).is_ok() {
+                app.is_speaking = false;
+            }
         }
     }
 }

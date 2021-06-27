@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use app::App;
-use eframe::{egui, NativeOptions};
+use eframe::{egui::Vec2, NativeOptions};
 mod app;
 mod speaker;
 mod utils;
@@ -15,7 +15,7 @@ fn main() {
     eframe::run_native(
         Box::new(app),
         NativeOptions {
-            initial_window_size: Some(egui::Vec2 {
+            initial_window_size: Some(Vec2 {
                 x: APP_WIDTH,
                 y: APP_HEIGHT,
             }),
