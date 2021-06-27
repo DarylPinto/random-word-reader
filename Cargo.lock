@@ -1348,7 +1348,7 @@ dependencies = [
 
 [[package]]
 name = "random-word-reader"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "eframe",
  "rand",
