@@ -1,6 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use eframe::{egui, epi};
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::mpsc::{self, Sender},
+};
 mod utils;
 
 const APP_NAME: &str = "Random Word Reader";
@@ -12,6 +15,7 @@ pub struct App {
     categories: Vec<(PathBuf, String)>,
     selected_category: String,
     is_speaking: bool,
+    tx: Option<Sender<bool>>,
 }
 
 impl Default for App {
@@ -21,6 +25,7 @@ impl Default for App {
             categories: utils::get_word_filenames(),
             selected_category: String::from("All"),
             is_speaking: false,
+            tx: None,
         }
     }
 }
@@ -51,8 +56,10 @@ impl epi::App for App {
                     let interval = self.interval;
                     let selected = self.selected_category.clone();
                     let categories = self.categories.clone();
+                    let (tx, rx) = mpsc::channel();
+                    self.tx = Some(tx);
                     std::thread::spawn(move || {
-                        utils::speak(interval, categories, selected).unwrap_or(());
+                        utils::speak(interval, categories, selected, rx).unwrap_or(());
                     });
                 }
             } else {
@@ -64,6 +71,13 @@ impl epi::App for App {
                     self.selected_category.to_string(),
                     self.interval
                 ));
+                ui.add_space(PADDING * 2.);
+                if ui.button("Back").clicked() {
+                    if let Some(tx) = &self.tx {
+                        tx.send(true).unwrap();
+                        self.is_speaking = false;
+                    }
+                }
             }
         });
     }

@@ -4,6 +4,7 @@ use std::{
     fs::File,
     io::{prelude::*, BufReader},
     path::PathBuf,
+    sync::mpsc::Receiver,
 };
 use tts::Tts;
 
@@ -22,6 +23,7 @@ pub fn speak(
     interval: u64,
     categories: Vec<(PathBuf, String)>,
     selected_category: String,
+    rx: Receiver<bool>,
 ) -> Result<(), Box<dyn Error>> {
     // Get filename(s) for selected word type
     let paths: Vec<PathBuf> = if &selected_category == "All" {
@@ -54,13 +56,20 @@ pub fn speak(
 
     // Speak
     let mut speaker = Tts::default()?;
+    let delay = if interval < 1 { 1 } else { interval };
 
     loop {
         let choice = all_words.choose(&mut rand::thread_rng());
-        if let Some(w) = choice {
-            speaker.speak(w, true).unwrap();
+        if let Some(word) = choice {
+            speaker.speak(word, true)?;
         }
-        let delay = if interval < 1 { 1 } else { interval };
+        if let Ok(should_stop) = rx.try_recv() {
+            if should_stop {
+                break;
+            }
+        }
         std::thread::sleep(std::time::Duration::from_secs(delay));
     }
+
+    Ok(())
 }
