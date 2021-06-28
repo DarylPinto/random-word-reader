@@ -12,8 +12,8 @@ pub enum ChannelMessage {
 // Get list of filenames for word categories
 pub fn get_word_filenames() -> Vec<PathBuf> {
     std::fs::read_dir("./words")
-        .unwrap()
-        .map(|entry| entry.unwrap().path())
+        .expect("Unable to access word category folder")
+        .map(|entry| entry.expect("Failed to get path for entry").path())
         .collect()
 }
 
@@ -28,7 +28,7 @@ pub fn get_words(
             vec![path.clone()]
         }
         None => std::fs::read_dir("./words")?
-            .map(|entry| entry.unwrap().path())
+            .map(|entry| entry.expect("Failed to get path for entry").path())
             .collect(),
     };
 
@@ -40,7 +40,7 @@ pub fn get_words(
 
         let mut words: Vec<String> = buffer
             .lines()
-            .map(|line| line.expect("unable to parse"))
+            .map(|line| line.expect("Unable to parse line"))
             .collect();
 
         all_words.append(&mut words);
@@ -51,7 +51,7 @@ pub fn get_words(
 
 pub fn path_to_string(path: &Path) -> String {
     path.file_stem()
-        .unwrap()
+        .expect(&format!("No filename for {:?}!", path))
         .to_owned()
         .into_string()
         .unwrap_or_else(|_| String::from("Unknown"))
