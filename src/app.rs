@@ -88,7 +88,7 @@ impl epi::App for App {
         APP_NAME
     }
 
-    fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &epi::Frame) {
         egui::CentralPanel::default().show(&ctx, |ui| {
             render_header(ui);
             if !self.is_speaking {
